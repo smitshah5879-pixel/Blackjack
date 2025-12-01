@@ -6,14 +6,14 @@
 
 body {
   font-family: Arial, sans-serif;
-  background-color: black; /* Changed from image to solid black */
+  background-color: black;
   color: white;
   text-align: center;
   padding: 10px;
 }
 
 #game-container {
-  max-width: 1000px;
+  max-width: 900px;
   margin: 0 auto;
   background-color: rgba(0, 0, 0, 0.7);
   border-radius: 10px;
@@ -28,13 +28,17 @@ body {
   margin-bottom: 20px;
 }
 
+#chips-bet-info {
+  background-color: rgba(0,0,0,0.6);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 18px;
+}
+
 #bet-area {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background-color: rgba(0, 0, 0, 0.4);
-  padding: 10px 15px;
-  border-radius: 5px;
+  background-color: rgba(0,0,0,0.6);
+  padding: 6px 10px;
+  border-radius: 4px;
   font-size: 18px;
 }
 
@@ -42,19 +46,6 @@ body {
   width: 80px;
   padding: 5px;
   font-size: 16px;
-}
-
-#show-strategy {
-  padding: 8px 16px;
-  font-size: 16px;
-}
-
-#count-info {
-  position: absolute;
-  top: 10px;
-  left: 20px;
-  font-size: 18px;
-  color: #00ff00;
 }
 
 .hand {
@@ -76,7 +67,6 @@ body {
   text-align: center;
   border: 2px solid #333;
   box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-  z-index: 2;
 }
 
 #controls button {
@@ -90,8 +80,9 @@ body {
   cursor: pointer;
 }
 
-#controls button:hover {
-  background-color: #009e4f;
+#controls button:disabled {
+  background-color: #444;
+  cursor: not-allowed;
 }
 
 #message {
@@ -101,74 +92,15 @@ body {
   color: #ffeb3b;
 }
 
-/* Modal styles */
-.modal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.85);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-.modal.hidden {
-  display: none;
-}
-.modal-content {
-  position: relative;
-  background: #fff;
-  padding: 10px;
-  border-radius: 6px;
-  max-width: 90%;
-  max-height: 90%;
-  overflow: auto;
-}
-.modal-content img {
-  max-width: 100%;
-  height: auto;
-}
-.close {
-  position: absolute;
-  top: 8px; right: 12px;
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-  cursor: pointer;
-}
-
-/* Fireworks */
-.firework {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  animation: explode 1000ms ease-out forwards;
-}
-@keyframes explode {
-  0% { opacity: 1; transform: scale(0.1); }
-  100% { opacity: 0; transform: scale(2.5); }
-}
-/* New chips & bet info styling */
-#chips-bet-info {
-  background-color: rgba(0,0,0,0.6);
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 18px;
+.hand-total {
   color: white;
+  font-size: 18px;
+  margin-top: 4px;
+  text-shadow: 1px 1px 2px black;
 }
 
-/* Card dealing animation: fade-in + slight upward motion */
-.card {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+#count-info {
+  font-size: 18px;
+  color: #00ff00;
+  margin-bottom: 10px;
 }
-
-.card.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-
-
-

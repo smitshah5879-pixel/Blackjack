@@ -148,6 +148,27 @@ body {
   0% { opacity: 1; transform: scale(0.1); }
   100% { opacity: 0; transform: scale(2.5); }
 }
+/* New chips & bet info styling */
+#chips-bet-info {
+  background-color: rgba(0,0,0,0.6);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 18px;
+  color: white;
+}
+
+/* Card dealing animation: fade-in + slight upward motion */
+.card {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.card.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 
 
 

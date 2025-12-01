@@ -1,4 +1,4 @@
-// Blackjack script with chips/bet display + animated dealing + hand totals
+// Blackjack script — no animation, with betting, hand totals, card count
 
 const suits = ['♠','♥','♦','♣'];
 const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -23,11 +23,11 @@ const splitBtn = document.getElementById('split');
 const messageDiv = document.getElementById('message');
 
 placeBetBtn.addEventListener('click', placeBet);
-dealBtn.addEventListener('click', () => dealWithAnimation());
-hitBtn.addEventListener('click', () => hitWithAnimation());
+dealBtn.addEventListener('click', deal);
+hitBtn.addEventListener('click', hit);
 standBtn.addEventListener('click', stand);
-doubleBtn.addEventListener('click', () => doubleDownWithAnimation());
-splitBtn.addEventListener('click', () => splitWithAnimation());
+doubleBtn.addEventListener('click', doubleDown);
+splitBtn.addEventListener('click', splitHand);
 
 function updateChipsAndCount() {
   chipCountSpan.textContent = chips;
@@ -38,7 +38,7 @@ function updateChipsAndCount() {
 function placeBet() {
   const v = parseInt(betInput.value);
   if (isNaN(v) || v < 1) {
-    alert("Please enter a valid bet amount.");
+    alert("Please enter a valid bet.");
     return;
   }
   if (v > chips) {
@@ -48,6 +48,7 @@ function placeBet() {
   currentBet = v;
   chips -= v;
   updateChipsAndCount();
+
   dealBtn.disabled = false;
   hitBtn.disabled = true;
   standBtn.disabled = true;
@@ -56,7 +57,6 @@ function placeBet() {
   messageDiv.textContent = `Bet placed: ${currentBet}`;
 }
 
-// Utilities
 function buildDeck() {
   const d = [];
   for (let s of suits) for (let v of values) d.push({ suit: s, value: v });
@@ -75,13 +75,18 @@ function getCountValue(card) {
   if (['10','J','Q','K','A'].includes(card.value)) return -1;
   return 0;
 }
+function drawCard() {
+  const c = deck.pop();
+  count += getCountValue(c);
+  return c;
+}
 
-// Core deal logic but with animation
-async function dealWithAnimation() {
+function deal() {
   if (currentBet <= 0) {
     alert("You must place a bet first.");
     return;
   }
+
   deck = buildDeck();
   dealerHand = [];
   playerHands = [[]];
@@ -89,18 +94,16 @@ async function dealWithAnimation() {
   count = 0;
   gameOver = false;
   messageDiv.textContent = '';
-  clearHandsUI();
 
-  // Deal cards in sequence: player, dealer, player, dealer
-  await dealCardTo(playerHands[0], 'player-hands');
-  await dealCardTo(dealerHand, 'dealer-hand', true);
-  await dealCardTo(playerHands[0], 'player-hands');
-  await dealCardTo(dealerHand, 'dealer-hand', true);
+  playerHands[0].push(drawCard());
+  playerHands[0].push(drawCard());
+  dealerHand.push(drawCard());
+  dealerHand.push(drawCard());
 
+  updateUI();
   enableButtons();
   dealBtn.disabled = true;
 
-  // After deal, handle blackjack check
   const pTotal = getHandValue(playerHands[0]);
   const dTotal = getHandValue(dealerHand);
   if (pTotal === 21) {
@@ -109,38 +112,44 @@ async function dealWithAnimation() {
       chips += currentBet;
     } else {
       finish("BLACKJACK! You win!");
-      fireworks && fireworks();
       chips += Math.floor(currentBet * 2.5);
     }
     updateChipsAndCount();
-    return;
   }
 }
 
-async function hitWithAnimation() {
+function hit() {
   if (gameOver) return;
   const hand = playerHands[activeHandIndex];
-  await dealCardTo(hand, 'player-hands');
+  hand.push(drawCard());
+  updateUI();
   if (getHandValue(hand) > 21) {
     nextHandOrDealer();
   }
 }
 
-async function doubleDownWithAnimation() {
+function stand() {
   if (gameOver) return;
+  nextHandOrDealer();
+}
+
+function doubleDown() {
+  if (gameOver) return;
+  const hand = playerHands[activeHandIndex];
+  if (hand.length !== 2) return;
   if (chips < currentBet) {
     alert("Not enough chips to double.");
     return;
   }
   chips -= currentBet;
   currentBet *= 2;
+  hand.push(drawCard());
   updateChipsAndCount();
-  const hand = playerHands[activeHandIndex];
-  await dealCardTo(hand, 'player-hands');
+  updateUI();
   nextHandOrDealer();
 }
 
-async function splitWithAnimation() {
+function splitHand() {
   if (gameOver) return;
   const hand = playerHands[activeHandIndex];
   if (hand.length !== 2) return;
@@ -151,73 +160,31 @@ async function splitWithAnimation() {
   }
   chips -= currentBet;
   updateChipsAndCount();
-
   const card1 = hand[0], card2 = hand[1];
   playerHands = [
     [card1],
     [card2]
   ];
   activeHandIndex = 0;
-  clearHandsUI();
-  await dealCardTo(playerHands[0], 'player-hands');
-  await dealCardTo(playerHands[1], 'player-hands');
-}
-
-function clearHandsUI() {
-  document.getElementById('dealer-hand').innerHTML = '';
-  document.getElementById('player-hands').innerHTML = '';
-}
-
-function dealCardTo(hand, parentDivId, hideFirst = false) {
-  return new Promise(resolve => {
-    const card = deck.pop();
-    count += getCountValue(card);
-    hand.push(card);
-    updateChipsAndCount();
-
-    const parent = document.getElementById(parentDivId);
-    const handContainer = (parentDivId === 'player-hands')
-      ? parent  // we will manage grouping in updateUI
-      : parent;
-
-    // Render card visually
-    const cardDiv = renderCard(card, hideFirst && hand === dealerHand);
-    parent.appendChild(cardDiv);
-    // Trigger animation
-    setTimeout(() => {
-      cardDiv.classList.add('show');
-    }, 50);
-    // Wait animation then update UI totals + resolve
-    setTimeout(() => {
-      updateUI();
-      resolve();
-    }, 300); // duration matches CSS transition
-  });
-}
-
-function hit() { /* handled by hitWithAnimation */ }
-function deal() { /* handled by dealWithAnimation */ }
-
-function stand() {
-  if (gameOver) return;
-  nextHandOrDealer();
+  updateUI();
 }
 
 function nextHandOrDealer() {
   activeHandIndex++;
-  if (activeHandIndex >= playerHands.length) dealerTurn();
-  else updateUI();
+  if (activeHandIndex >= playerHands.length) {
+    dealerTurn();
+  } else {
+    updateUI();
+  }
 }
 
 function dealerTurn() {
   disableButtons();
-  (async () => {
-    while (getHandValue(dealerHand) < 17) {
-      await dealCardTo(dealerHand, 'dealer-hand', false);
-    }
-    updateUI(true);
-    settle();
-  })();
+  while (getHandValue(dealerHand) < 17) {
+    dealerHand.push(drawCard());
+  }
+  updateUI(true);
+  settle();
 }
 
 function settle() {
@@ -236,7 +203,6 @@ function settle() {
       chips += currentBet;
     }
   });
-
   messageDiv.textContent = msg;
   updateChipsAndCount();
 
@@ -257,11 +223,53 @@ function getHandValue(hand) {
   return total;
 }
 
-function renderCard(card, hide=false) {
-  const d = document.createElement("div");
-  d.className = "card";
-  d.textContent = hide ? "🂠" : (card.value + card.suit);
-  return d;
+function updateUI(showDealer = false) {
+  // Count
+  countValueSpan.textContent = count;
+
+  // Dealer UI
+  const dealerDiv = document.getElementById('dealer-hand');
+  dealerDiv.innerHTML = "";
+  dealerHand.forEach((c, i) => {
+    const hide = (i === 0 && !showDealer && !gameOver);
+    dealerDiv.appendChild(renderCard(c, hide));
+  }
+  );
+  const dealerTotalDiv = document.getElementById('dealer-total');
+  if (showDealer || gameOver) {
+    dealerTotalDiv.textContent = "Total: " + getHandValue(dealerHand);
+  } else {
+    dealerTotalDiv.textContent = "Total: ?";
+  }
+
+  // Player UI
+  const phDiv = document.getElementById('player-hands');
+  phDiv.innerHTML = "";
+  playerHands.forEach((hand, idx) => {
+    const handDiv = document.createElement("div");
+    handDiv.className = "hand-container";
+
+    const cardsDiv = document.createElement("div");
+    cardsDiv.className = "hand";
+    hand.forEach(c => cardsDiv.appendChild(renderCard(c)));
+    handDiv.appendChild(cardsDiv);
+
+    const totalDiv = document.createElement("div");
+    totalDiv.className = "hand-total";
+    totalDiv.textContent = "Total: " + getHandValue(hand);
+    handDiv.appendChild(totalDiv);
+
+    phDiv.appendChild(handDiv);
+  });
+
+  updateChipsAndCount();
+}
+
+function renderCard(c, hide = false) {
+  const div = document.createElement("div");
+  div.className = "card";
+  div.textContent = hide ? "🂠" : c.value + c.suit;
+  return div;
 }
 
 function enableButtons() {
@@ -270,7 +278,6 @@ function enableButtons() {
   doubleBtn.disabled = false;
   splitBtn.disabled = false;
 }
-
 function disableButtons() {
   hitBtn.disabled = true;
   standBtn.disabled = true;
@@ -278,20 +285,11 @@ function disableButtons() {
   splitBtn.disabled = true;
 }
 
-// If you have fireworks from earlier version, keep it
-function fireworks() {
-  for (let i = 0; i < 40; i++) {
-    const f = document.createElement('div');
-    f.className = 'firework';
-    const size = Math.random() * 6 + 4;
-    f.style.width = f.style.height = size + 'px';
-    f.style.background = `hsl(${Math.random() * 360}, 100%, 60%)`;
-    f.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 200) + 'px';
-    f.style.top = (window.innerHeight / 2 + (Math.random() - 0.5) * 200) + 'px';
-    fireworksContainer && fireworksContainer.appendChild(f);
-    setTimeout(() => f.remove(), 1200);
-  }
+function finish(msg) {
+  gameOver = true;
+  disableButtons();
+  messageDiv.textContent = msg;
 }
 
-// Init
+// Initialize
 updateChipsAndCount();

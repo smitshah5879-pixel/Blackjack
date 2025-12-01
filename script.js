@@ -1,7 +1,7 @@
-// Blackjack script with fixed betting rules
+// Blackjack script with chips/bet display + animated dealing + hand totals
 
-const suits = ['♠', '♥', '♦', '♣'];
-const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+const suits = ['♠','♥','♦','♣'];
+const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
 
 let deck, dealerHand, playerHands, activeHandIndex;
 let count = 0;
@@ -10,6 +10,8 @@ let currentBet = 0;
 let gameOver = false;
 
 const chipCountSpan = document.getElementById('chip-count');
+const betDisplaySpan = document.getElementById('bet-display');
+const countValueSpan = document.getElementById('count-value');
 const betInput = document.getElementById('bet-input');
 const placeBetBtn = document.getElementById('place-bet');
 
@@ -20,71 +22,66 @@ const doubleBtn = document.getElementById('double');
 const splitBtn = document.getElementById('split');
 const messageDiv = document.getElementById('message');
 
-const showStrategyBtn = document.getElementById('show-strategy');
-const strategyModal = document.getElementById('strategy-modal');
-const closeModal = document.getElementById('close-modal');
-
-const fireworksContainer = document.getElementById('fireworks-container');
-
 placeBetBtn.addEventListener('click', placeBet);
-dealBtn.addEventListener('click', deal);
-hitBtn.addEventListener('click', hit);
+dealBtn.addEventListener('click', () => dealWithAnimation());
+hitBtn.addEventListener('click', () => hitWithAnimation());
 standBtn.addEventListener('click', stand);
-doubleBtn.addEventListener('click', doubleDown);
-splitBtn.addEventListener('click', splitHand);
+doubleBtn.addEventListener('click', () => doubleDownWithAnimation());
+splitBtn.addEventListener('click', () => splitWithAnimation());
 
-// Modal logic
-showStrategyBtn.addEventListener('click', () => strategyModal.classList.remove('hidden'));
-closeModal.addEventListener('click', () => strategyModal.classList.add('hidden'));
-strategyModal.addEventListener('click', e => { if (e.target === strategyModal) strategyModal.classList.add('hidden') });
-
-
-
-function updateChips() {
+function updateChipsAndCount() {
   chipCountSpan.textContent = chips;
-  document.getElementById('count-value').textContent = count;
+  betDisplaySpan.textContent = currentBet;
+  countValueSpan.textContent = count;
 }
 
-
-
-// 🔥 FIX: Player must place a bet before Deal is unlocked
 function placeBet() {
   const v = parseInt(betInput.value);
-
   if (isNaN(v) || v < 1) {
     alert("Please enter a valid bet amount.");
     return;
   }
-
   if (v > chips) {
-    alert("You do not have enough chips for that bet.");
+    alert("Not enough chips.");
     return;
   }
-
-  // Deduct bet from chips now
   currentBet = v;
   chips -= v;
-
-  updateChips();
-
-  dealBtn.disabled = false;   // Only now Deal is unlocked
+  updateChipsAndCount();
+  dealBtn.disabled = false;
   hitBtn.disabled = true;
   standBtn.disabled = true;
   doubleBtn.disabled = true;
   splitBtn.disabled = true;
-
   messageDiv.textContent = `Bet placed: ${currentBet}`;
 }
 
+// Utilities
+function buildDeck() {
+  const d = [];
+  for (let s of suits) for (let v of values) d.push({ suit: s, value: v });
+  return shuffle(d);
+}
+function shuffle(a) {
+  return a.sort(() => Math.random() - 0.5);
+}
+function getCardValue(card) {
+  if (['J','Q','K'].includes(card.value)) return 10;
+  if (card.value === 'A') return 11;
+  return parseInt(card.value);
+}
+function getCountValue(card) {
+  if (['2','3','4','5','6'].includes(card.value)) return 1;
+  if (['10','J','Q','K','A'].includes(card.value)) return -1;
+  return 0;
+}
 
-
-// MAIN DEAL
-function deal() {
+// Core deal logic but with animation
+async function dealWithAnimation() {
   if (currentBet <= 0) {
-    alert("You must bet before dealing.");
+    alert("You must place a bet first.");
     return;
   }
-
   deck = buildDeck();
   dealerHand = [];
   playerHands = [[]];
@@ -92,137 +89,142 @@ function deal() {
   count = 0;
   gameOver = false;
   messageDiv.textContent = '';
+  clearHandsUI();
 
-  // Deal initial cards
-  playerHands[0].push(drawCard());
-  playerHands[0].push(drawCard());
-  dealerHand.push(drawCard());
-  dealerHand.push(drawCard());
+  // Deal cards in sequence: player, dealer, player, dealer
+  await dealCardTo(playerHands[0], 'player-hands');
+  await dealCardTo(dealerHand, 'dealer-hand', true);
+  await dealCardTo(playerHands[0], 'player-hands');
+  await dealCardTo(dealerHand, 'dealer-hand', true);
 
-  updateUI();
   enableButtons();
+  dealBtn.disabled = true;
 
-  dealBtn.disabled = true; // LOCK deal until a NEW bet is placed
-
-  // Check player blackjack
-  const playerTotal = getHandValue(playerHands[0]);
-  const dealerTotal = getHandValue(dealerHand);
-
-  if (playerTotal === 21) {
-    if (dealerTotal === 21) {
-      finish("Push! Both have Blackjack");
-      chips += currentBet; // refund
-      updateChips();
-      return;
+  // After deal, handle blackjack check
+  const pTotal = getHandValue(playerHands[0]);
+  const dTotal = getHandValue(dealerHand);
+  if (pTotal === 21) {
+    if (dTotal === 21) {
+      finish("Push — both Blackjack.");
+      chips += currentBet;
+    } else {
+      finish("BLACKJACK! You win!");
+      fireworks && fireworks();
+      chips += Math.floor(currentBet * 2.5);
     }
-
-    finish("BLACKJACK! You win!");
-    fireworks();
-    chips += Math.floor(currentBet * 2.5);  // 3:2 payout
-    updateChips();
+    updateChipsAndCount();
     return;
   }
 }
 
-
-
-// HIT
-function hit() {
+async function hitWithAnimation() {
+  if (gameOver) return;
   const hand = playerHands[activeHandIndex];
-  hand.push(drawCard());
-  updateUI();
-
+  await dealCardTo(hand, 'player-hands');
   if (getHandValue(hand) > 21) {
     nextHandOrDealer();
   }
 }
 
-
-
-// STAND
-function stand() {
-  nextHandOrDealer();
-}
-
-
-
-// DOUBLE DOWN
-function doubleDown() {
+async function doubleDownWithAnimation() {
+  if (gameOver) return;
   if (chips < currentBet) {
     alert("Not enough chips to double.");
     return;
   }
-
   chips -= currentBet;
   currentBet *= 2;
-
+  updateChipsAndCount();
   const hand = playerHands[activeHandIndex];
-  hand.push(drawCard());
-
-  updateChips();
-  updateUI();
-
+  await dealCardTo(hand, 'player-hands');
   nextHandOrDealer();
 }
 
-
-
-// SPLIT
-function splitHand() {
+async function splitWithAnimation() {
+  if (gameOver) return;
   const hand = playerHands[activeHandIndex];
-
   if (hand.length !== 2) return;
   if (getCardValue(hand[0]) !== getCardValue(hand[1])) return;
-
   if (chips < currentBet) {
     alert("Not enough chips to split.");
     return;
   }
-
   chips -= currentBet;
-  updateChips();
+  updateChipsAndCount();
 
+  const card1 = hand[0], card2 = hand[1];
   playerHands = [
-    [hand[0], drawCard()],
-    [hand[1], drawCard()]
+    [card1],
+    [card2]
   ];
   activeHandIndex = 0;
-  updateUI();
+  clearHandsUI();
+  await dealCardTo(playerHands[0], 'player-hands');
+  await dealCardTo(playerHands[1], 'player-hands');
 }
 
+function clearHandsUI() {
+  document.getElementById('dealer-hand').innerHTML = '';
+  document.getElementById('player-hands').innerHTML = '';
+}
 
+function dealCardTo(hand, parentDivId, hideFirst = false) {
+  return new Promise(resolve => {
+    const card = deck.pop();
+    count += getCountValue(card);
+    hand.push(card);
+    updateChipsAndCount();
+
+    const parent = document.getElementById(parentDivId);
+    const handContainer = (parentDivId === 'player-hands')
+      ? parent  // we will manage grouping in updateUI
+      : parent;
+
+    // Render card visually
+    const cardDiv = renderCard(card, hideFirst && hand === dealerHand);
+    parent.appendChild(cardDiv);
+    // Trigger animation
+    setTimeout(() => {
+      cardDiv.classList.add('show');
+    }, 50);
+    // Wait animation then update UI totals + resolve
+    setTimeout(() => {
+      updateUI();
+      resolve();
+    }, 300); // duration matches CSS transition
+  });
+}
+
+function hit() { /* handled by hitWithAnimation */ }
+function deal() { /* handled by dealWithAnimation */ }
+
+function stand() {
+  if (gameOver) return;
+  nextHandOrDealer();
+}
 
 function nextHandOrDealer() {
   activeHandIndex++;
-
-  if (activeHandIndex >= playerHands.length) {
-    dealerTurn();
-  } else {
-    updateUI();
-  }
+  if (activeHandIndex >= playerHands.length) dealerTurn();
+  else updateUI();
 }
 
-
-
-// DEALER LOGIC
 function dealerTurn() {
   disableButtons();
-  while (getHandValue(dealerHand) < 17) {
-    dealerHand.push(drawCard());
-  }
-  updateUI(true);
-  settle();
+  (async () => {
+    while (getHandValue(dealerHand) < 17) {
+      await dealCardTo(dealerHand, 'dealer-hand', false);
+    }
+    updateUI(true);
+    settle();
+  })();
 }
-
-
 
 function settle() {
   const dt = getHandValue(dealerHand);
   let msg = "";
-
   playerHands.forEach((hand, i) => {
     const pt = getHandValue(hand);
-
     if (pt > 21) msg += `Hand ${i+1}: Bust. `;
     else if (dt > 21 || pt > dt) {
       msg += `Hand ${i+1}: You win! `;
@@ -236,92 +238,30 @@ function settle() {
   });
 
   messageDiv.textContent = msg;
-  updateChips();
+  updateChipsAndCount();
 
-  // Auto-refill chips when hit 0
-  if (chips <= 0) {
-    chips += 1000;
-    alert("You ran out of chips! 1000 chips added.");
-    updateChips();
-  }
-
-  // ⚠️ Require new bet
   currentBet = 0;
   dealBtn.disabled = true;
 }
 
-
-
-// Utility functions
-function buildDeck() {
-  const d = [];
-  for (let s of suits) for (let v of values) d.push({ suit: s, value: v });
-  return d.sort(() => Math.random() - 0.5);
-}
-
-function getCardValue(c) {
-  if (['J','Q','K'].includes(c.value)) return 10;
-  if (c.value === 'A') return 11;
-  return parseInt(c.value);
-}
-
-function drawCard() {
-  const c = deck.pop();
-  count += getCountValue(c);
-  return c;
-}
-
-function getCountValue(c) {
-  if (['2','3','4','5','6'].includes(c.value)) return 1;
-  if (['10','J','Q','K','A'].includes(c.value)) return -1;
-  return 0;
-}
-
 function getHandValue(hand) {
-  let t = 0, aces = 0;
-  hand.forEach(card => {
-    t += getCardValue(card);
-    if (card.value === 'A') aces++;
-  });
-  while (t > 21 && aces > 0) {
-    t -= 10;
+  let total = 0, aces = 0;
+  for (let c of hand) {
+    total += getCardValue(c);
+    if (c.value === 'A') aces++;
+  }
+  while (total > 21 && aces > 0) {
+    total -= 10;
     aces--;
   }
-  return t;
+  return total;
 }
 
-
-// UI Rendering -------------------------------------------------
-
-function updateUI(showDealer = false) {
-  document.getElementById("count-value").textContent = count;
-
-  // Dealer
-  const dealerDiv = document.getElementById("dealer-hand");
-  dealerDiv.innerHTML = "";
-  dealerHand.forEach((card, i) => {
-    const hide = (i === 0 && !showDealer && !gameOver);
-    dealerDiv.appendChild(render(card, hide));
-  });
-
-  // Player
-  const phDiv = document.getElementById("player-hands");
-  phDiv.innerHTML = "";
-  playerHands.forEach((hand, i) => {
-    const div = document.createElement("div");
-    div.className = "hand";
-    if (i === activeHandIndex && !gameOver) div.style.border = "2px solid yellow";
-
-    hand.forEach(c => div.appendChild(render(c)));
-    phDiv.appendChild(div);
-  });
-}
-
-function render(card, hide=false) {
-  const div = document.createElement("div");
-  div.className = "card";
-  div.textContent = hide ? "🂠" : card.value + card.suit;
-  return div;
+function renderCard(card, hide=false) {
+  const d = document.createElement("div");
+  d.className = "card";
+  d.textContent = hide ? "🂠" : (card.value + card.suit);
+  return d;
 }
 
 function enableButtons() {
@@ -338,9 +278,7 @@ function disableButtons() {
   splitBtn.disabled = true;
 }
 
-
-
-// Fireworks animation
+// If you have fireworks from earlier version, keep it
 function fireworks() {
   for (let i = 0; i < 40; i++) {
     const f = document.createElement('div');
@@ -350,16 +288,10 @@ function fireworks() {
     f.style.background = `hsl(${Math.random() * 360}, 100%, 60%)`;
     f.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 200) + 'px';
     f.style.top = (window.innerHeight / 2 + (Math.random() - 0.5) * 200) + 'px';
-    fireworksContainer.appendChild(f);
+    fireworksContainer && fireworksContainer.appendChild(f);
     setTimeout(() => f.remove(), 1200);
   }
 }
 
 // Init
-function updateChips() {
-  chipCountSpan.textContent = chips;
-  document.getElementById('count-value').textContent = count;
-}
-
-
-
+updateChipsAndCount();

@@ -1,4 +1,4 @@
-// Blackjack script — no animation, with betting, hand totals, card count
+// Blackjack script: betting, card counting, hand totals, no animation
 
 const suits = ['♠','♥','♦','♣'];
 const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -224,25 +224,18 @@ function getHandValue(hand) {
 }
 
 function updateUI(showDealer = false) {
-  // Count
   countValueSpan.textContent = count;
 
-  // Dealer UI
   const dealerDiv = document.getElementById('dealer-hand');
-  dealerDiv.innerHTML = "";
+  dealerDiv.innerHTML = '';
   dealerHand.forEach((c, i) => {
     const hide = (i === 0 && !showDealer && !gameOver);
     dealerDiv.appendChild(renderCard(c, hide));
-  }
-  );
+  });
   const dealerTotalDiv = document.getElementById('dealer-total');
-  if (showDealer || gameOver) {
-    dealerTotalDiv.textContent = "Total: " + getHandValue(dealerHand);
-  } else {
-    dealerTotalDiv.textContent = "Total: ?";
-  }
+  if (showDealer || gameOver) dealerTotalDiv.textContent = "Total: " + getHandValue(dealerHand);
+  else dealerTotalDiv.textContent = "Total: ?";
 
-  // Player UI
   const phDiv = document.getElementById('player-hands');
   phDiv.innerHTML = "";
   playerHands.forEach((hand, idx) => {
@@ -265,11 +258,11 @@ function updateUI(showDealer = false) {
   updateChipsAndCount();
 }
 
-function renderCard(c, hide = false) {
-  const div = document.createElement("div");
-  div.className = "card";
-  div.textContent = hide ? "🂠" : c.value + c.suit;
-  return div;
+function renderCard(card, hide=false) {
+  const d = document.createElement("div");
+  d.className = "card";
+  d.textContent = hide ? "🂠" : card.value + card.suit;
+  return d;
 }
 
 function enableButtons() {
@@ -291,5 +284,5 @@ function finish(msg) {
   messageDiv.textContent = msg;
 }
 
-// Initialize
+// initialize
 updateChipsAndCount();

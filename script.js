@@ -1,4 +1,4 @@
-// Blackjack script: betting, card counting, hand totals, no animation
+// Blackjack script — betting, card count, hand totals, strategy popup, auto‑reset when chips 0
 
 const suits = ['♠','♥','♦','♣'];
 const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -22,12 +22,22 @@ const doubleBtn = document.getElementById('double');
 const splitBtn = document.getElementById('split');
 const messageDiv = document.getElementById('message');
 
+const showStrategyBtn = document.getElementById('show-strategy');
+const strategyModal = document.getElementById('strategy-modal');
+const closeModal = document.getElementById('close-modal');
+
 placeBetBtn.addEventListener('click', placeBet);
 dealBtn.addEventListener('click', deal);
 hitBtn.addEventListener('click', hit);
 standBtn.addEventListener('click', stand);
 doubleBtn.addEventListener('click', doubleDown);
 splitBtn.addEventListener('click', splitHand);
+
+// Strategy popup
+showStrategyBtn.addEventListener('click', () => strategyModal.classList.remove('hidden'));
+closeModal.addEventListener('click', () => strategyModal.classList.add('hidden'));
+strategyModal.addEventListener('click', e => { if (e.target === strategyModal) strategyModal.classList.add('hidden'); });
+
 
 function updateChipsAndCount() {
   chipCountSpan.textContent = chips;
@@ -205,6 +215,12 @@ function settle() {
   });
   messageDiv.textContent = msg;
   updateChipsAndCount();
+
+  if (chips <= 0) {
+    alert("You ran out of chips! 1000 chips have been added so you can play again.");
+    chips = 1000;
+    updateChipsAndCount();
+  }
 
   currentBet = 0;
   dealBtn.disabled = true;

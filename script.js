@@ -1,4 +1,4 @@
-// Blackjack script — betting, card count, hand totals, strategy popup, auto‑reset when chips 0
+// Blackjack script — with chips reset and strategy‑button modal
 
 const suits = ['♠','♥','♦','♣'];
 const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -33,11 +33,10 @@ standBtn.addEventListener('click', stand);
 doubleBtn.addEventListener('click', doubleDown);
 splitBtn.addEventListener('click', splitHand);
 
-// Strategy popup
+// Modal popup logic
 showStrategyBtn.addEventListener('click', () => strategyModal.classList.remove('hidden'));
 closeModal.addEventListener('click', () => strategyModal.classList.add('hidden'));
 strategyModal.addEventListener('click', e => { if (e.target === strategyModal) strategyModal.classList.add('hidden'); });
-
 
 function updateChipsAndCount() {
   chipCountSpan.textContent = chips;
@@ -217,7 +216,7 @@ function settle() {
   updateChipsAndCount();
 
   if (chips <= 0) {
-    alert("You ran out of chips! 1000 chips have been added so you can play again.");
+    alert("You ran out of chips! 1000 chips added so you can keep playing.");
     chips = 1000;
     updateChipsAndCount();
   }
@@ -300,5 +299,5 @@ function finish(msg) {
   messageDiv.textContent = msg;
 }
 
-// initialize
+// initialization
 updateChipsAndCount();

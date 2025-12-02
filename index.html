@@ -8,13 +8,17 @@
 </head>
 <body>
   <div id="count-info">Count: <span id="count-value">0</span></div>
+
   <div id="game-container">
     <div id="top-info">
-      <div id="chips-bet-info">Chips: <span id="chip-count">1000</span> | Bet: <span id="bet-display">0</span></div>
+      <div id="chips-bet-info">
+        Chips: <span id="chip-count">1000</span> | Bet: <span id="bet-display">0</span>
+      </div>
       <div id="bet-area">
         Bet: <input type="number" id="bet-input" min="1" value="10">
         <button id="place-bet">Place Bet</button>
       </div>
+      <button id="show-strategy">Show Strategy</button>
     </div>
 
     <div id="dealer">
@@ -37,6 +41,14 @@
     </div>
 
     <div id="message"></div>
+  </div>
+
+  <!-- Strategy chart modal -->
+  <div id="strategy-modal" class="modal hidden">
+    <div class="modal-content">
+      <span id="close-modal" class="close">&times;</span>
+      <img src="blackjack_basic_strategy_chart-982x1024.jpg" alt="Strategy Chart" id="strategy-image">
+    </div>
   </div>
 
   <script src="script.js"></script>

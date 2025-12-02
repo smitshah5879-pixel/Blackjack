@@ -1,4 +1,4 @@
-// Blackjack script — with chips reset and strategy‑button modal
+// Blackjack script — with chips reset when zero + strategy‑modal logic
 
 const suits = ['♠','♥','♦','♣'];
 const values = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -33,10 +33,14 @@ standBtn.addEventListener('click', stand);
 doubleBtn.addEventListener('click', doubleDown);
 splitBtn.addEventListener('click', splitHand);
 
-// Modal popup logic
+// Modal popup events
 showStrategyBtn.addEventListener('click', () => strategyModal.classList.remove('hidden'));
 closeModal.addEventListener('click', () => strategyModal.classList.add('hidden'));
-strategyModal.addEventListener('click', e => { if (e.target === strategyModal) strategyModal.classList.add('hidden'); });
+strategyModal.addEventListener('click', e => {
+  if (e.target === strategyModal) {
+    strategyModal.classList.add('hidden');
+  }
+});
 
 function updateChipsAndCount() {
   chipCountSpan.textContent = chips;
@@ -57,6 +61,13 @@ function placeBet() {
   currentBet = v;
   chips -= v;
   updateChipsAndCount();
+
+  // If after bet chips are 0, auto‑refill immediately so user still can play
+  if (chips <= 0) {
+    chips = 1000;
+    alert("You've used all chips — 1000 chips have been added so you can keep playing.");
+    updateChipsAndCount();
+  }
 
   dealBtn.disabled = false;
   hitBtn.disabled = true;
@@ -216,7 +227,7 @@ function settle() {
   updateChipsAndCount();
 
   if (chips <= 0) {
-    alert("You ran out of chips! 1000 chips added so you can keep playing.");
+    alert("You ran out of chips! 1000 chips have been added so you can keep playing.");
     chips = 1000;
     updateChipsAndCount();
   }
@@ -299,5 +310,5 @@ function finish(msg) {
   messageDiv.textContent = msg;
 }
 
-// initialization
+// init
 updateChipsAndCount();
